@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 
 import useFormValidation from './useFormValidation';
 import validateLogin from './validateLogin';
+import firebase from '../../firebase';
+import { Link } from 'react-router-dom';
+
 const INITIAL_STATE = {
   name: '',
   email: '',
@@ -16,9 +19,23 @@ function Login(props) {
     values,
     errors,
     isSubmitting,
-  } = useFormValidation(INITIAL_STATE, validateLogin);
-  const [login, setLogin] = useState(true);
+  } = useFormValidation(INITIAL_STATE, validateLogin, authenticateUser);
 
+  const [login, setLogin] = useState(true);
+  const [firebaseError, setFirebaseError] = useState(null);
+
+  async function authenticateUser() {
+    const { name, email, password } = values;
+    try {
+      login
+        ? await firebase.login(email, password)
+        : await firebase.register(name, email, password);
+      props.history.push('/');
+    } catch (err) {
+      console.error('Authentication Error', err);
+      setFirebaseError(err.message);
+    }
+  }
   return (
     <div className='mv3'>
       <h2>{login ? 'Login' : 'Create Account'}</h2>
@@ -55,7 +72,7 @@ function Login(props) {
           onChange={handleChange}
         />
         {errors.password && <p className='error-text'>{errors.password}</p>}
-
+        {firebaseError && <p className='error-text'>{firebaseError}</p>}
         <div className='flex mt3'>
           <button
             type='submit'
@@ -74,6 +91,9 @@ function Login(props) {
           </button>
         </div>
       </form>
+      <div className='forgot-password'>
+        <Link to='/forgot'>Forgot password?</Link>
+      </div>
     </div>
   );
 }
